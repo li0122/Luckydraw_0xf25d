@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企業尾牙大抽獎</title>
+    <style>
+        /* 基礎樣式重置 */
+        body, h1, p {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            background-color: #f0f0f0; /* 背景顏色 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* 拉霸機外框 */
+        .slot-machine-container {
+            background-color: #b22222; /* 主體紅色 */
+            border: 10px solid #daa520; /* 黃金邊框 */
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        /* 遊戲標題 */
+        .title {
+            color: #fff;
+            background-color: #8b0000;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        /* 滾動區域 */
+        .reel-container {
+            display: flex;
+            justify-content: space-around;
+            background-color: #fff;
+            border: 5px solid #8b0000;
+            padding: 20px 0;
+            margin-bottom: 20px;
+            height: 150px; /* 固定高度，模擬滾動窗格 */
+            overflow: hidden; /* 隱藏溢出內容，模擬單行顯示 */
+            position: relative;
+        }
+
+        /* 滾輪 */
+        .reel {
+            width: 30%;
+            background-color: #ddd;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            color: #333;
+            font-weight: bold;
+        }
+
+        /* 簡單的上下跳動動畫，模擬滾動狀態 */
+        @keyframes spin {
+            0% { transform: translateY(-10px); }
+            50% { transform: translateY(10px); }
+            100% { transform: translateY(-10px); }
+        }
+
+        /* 啟動狀態的滾輪動畫 */
+        .reel.spinning {
+            animation: spin 0.2s linear infinite;
+        }
+
+        /* 按鈕區域 */
+        .button-area {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* 基礎按鈕樣式 */
+        .btn {
+            background-color: #ffd700; /* 金色按鈕 */
+            color: #8b0000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        /* 按鈕懸停效果 */
+        .btn:hover {
+            background-color: #ffcc00;
+        }
+
+        /* 按鈕點擊效果 */
+        .btn:active {
+            transform: translateY(2px);
+        }
+
+        /* 隱藏的中獎顯示 (用於演示) */
+        .winner-display {
+            margin-top: 20px;
+            display: none; /* 預設隱藏 */
+            color: #fff;
+            font-size: 1.3em;
+            background-color: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="slot-machine-container">
+        <h1 class="title">企業尾牙大抽獎</h1>
+
+        <div class="reel-container">
+            <div class="reel" id="reel1">9</div>
+            <div class="reel" id="reel2">5</div>
+            <div class="reel" id="reel3">1</div>
+        </div>
+
+        <div class="button-area">
+            <button class="btn" onclick="startSpin()">開始抽獎</button>
+        }
+        </div>
+
+        <div class="winner-display" id="winnerDisplay"></div>
+    </div>
+
+    <script>
+        // 這是一個非常簡單的 JavaScript 演示代碼
+        // 用來模擬「開始抽獎」按鈕點擊後的畫面跳動
+
+        const reels = [
+            document.getElementById('reel1'),
+            document.getElementById('reel2'),
+            document.getElementById('reel3')
+        ];
+        const winnerDisplay = document.getElementById('winnerDisplay');
+        const spinButton = document.querySelector('.btn');
+
+        // 模擬開始滾動
+        function startSpin() {
+            spinButton.disabled = true; // 停用按鈕，防止重複點擊
+            winnerDisplay.style.display = 'none'; // 隱藏上次的中獎顯示
+
+            // 隨機改變數字並添加動畫效果
+            reels.forEach((reel) => {
+                reel.classList.add('spinning');
+                reel.textContent = '?'; // 在滾動時顯示問號
+            });
+
+            // 模擬滾動 2 秒後停止
+            setTimeout(stopSpin, 2000);
+        }
+
+        // 模擬停止滾動並顯示結果
+        function stopSpin() {
+            reels.forEach((reel) => {
+                reel.classList.remove('spinning');
+            });
+
+            // 隨機產生三個數字 (0-9)
+            const num1 = Math.floor(Math.random() * 10);
+            const num2 = Math.floor(Math.random() * 10);
+            const num3 = Math.floor(Math.random() * 10);
+
+            reels[0].textContent = num1;
+            reels[1].textContent = num2;
+            reels[2].textContent = num3;
+
+            // 模擬中獎 (三個數字相同)
+            if (num1 === num2 && num2 === num3) {
+                winnerDisplay.textContent = '恭喜中大獎！🎉';
+                winnerDisplay.style.display = 'block';
+            } else {
+                winnerDisplay.textContent = `很遺憾，沒中獎。再接再厲！ (中獎號碼：${num1}${num2}${num3})`;
+                winnerDisplay.style.display = 'block';
+            }
+
+            spinButton.disabled = false; // 重新啟用按鈕
+        }
+
+    </script>
+</body>
+</html>

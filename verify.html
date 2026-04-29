@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>春酒抽獎 - 公平性驗證工具</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap');
+    
+    body {
+      background: #0a0a0a;
+      color: #f0d070;
+      font-family: 'Noto Serif TC', serif;
+      display: flex;
+      justify-content: center;
+      padding: 2rem;
+      margin: 0;
+    }
+    .container {
+      background: rgba(26, 10, 0, 0.95);
+      border: 1px solid rgba(200, 150, 12, 0.4);
+      border-radius: 12px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 600px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    h1 {
+      text-align: center;
+      font-size: 24px;
+      letter-spacing: 4px;
+      margin-bottom: 0.5rem;
+      color: #c8960c;
+    }
+    p.subtitle {
+      text-align: center;
+      font-size: 13px;
+      color: rgba(200, 150, 12, 0.6);
+      margin-bottom: 2rem;
+    }
+    .input-group {
+      margin-bottom: 1.2rem;
+    }
+    .input-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      letter-spacing: 1px;
+    }
+    .input-group input {
+      width: 100%;
+      box-sizing: border-box;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(200, 150, 12, 0.3);
+      border-radius: 6px;
+      padding: 10px;
+      color: #fff;
+      font-family: monospace;
+      font-size: 14px;
+      outline: none;
+    }
+    .input-group input:focus {
+      border-color: #c8960c;
+    }
+    button {
+      width: 100%;
+      background: linear-gradient(135deg, #c8960c 0%, #8b6200 100%);
+      color: #fff8e1;
+      border: none;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: filter 0.2s;
+    }
+    button:hover {
+      filter: brightness(1.1);
+    }
+    .result-box {
+      margin-top: 2rem;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px dashed rgba(200, 150, 12, 0.3);
+      border-radius: 8px;
+      padding: 1.5rem;
+      display: none;
+    }
+    .result-item {
+      margin-bottom: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 1rem;
+    }
+    .result-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .result-label {
+      font-size: 12px;
+      color: rgba(200, 150, 12, 0.7);
+      margin-bottom: 4px;
+    }
+    .result-value {
+      font-family: monospace;
+      font-size: 14px;
+      color: #fff;
+      word-break: break-all;
+    }
+    .highlight {
+      color: #f5d060;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .match-status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .status-ok { background: rgba(46, 204, 113, 0.2); color: #2ecc71; border: 1px solid #2ecc71; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>公平性驗證工具</h1>
+  <p class="subtitle">PROVABLY FAIR VERIFIER</p>
+
+  <div class="input-group">
+    <label>主辦方公開的 Server Seed</label>
+    <input type="text" id="serverSeed" placeholder="貼上活動結束後公開的字串..." />
+  </div>
+  
+  <div class="input-group">
+    <label>抽獎畫面顯示的 Hash (選填，供比對)</label>
+    <input type="text" id="targetHash" placeholder="貼上抽獎前鎖定在畫面上的 Hash..." />
+  </div>
+
+  <div class="input-group">
+    <label>現場輸入的隨機碼 (Client Seed)</label>
+    <input type="text" id="clientSeed" placeholder="例如：E-United-2026" />
+  </div>
+
+  <div class="input-group">
+    <label>該次抽獎序號 (Nonce)</label>
+    <input type="number" id="nonce" placeholder="例如：1" min="1" />
+  </div>
+
+  <div class="input-group">
+    <label>抽獎當下剩餘總人數</label>
+    <input type="number" id="totalParticipants" placeholder="例如：50" min="1" />
+  </div>
+
+  <button onclick="verify()">開始驗證</button>
+
+  <div class="result-box" id="resultBox">
+    <div class="result-item">
+      <div class="result-label">1. 驗證伺服器雜湊 (Server Seed Hash)</div>
+      <div class="result-value" id="resServerHash"></div>
+      <div id="hashMatchMsg" style="margin-top: 5px;"></div>
+    </div>
+    
+    <div class="result-item">
+      <div class="result-label">2. 組合字串 (ServerSeed-ClientSeed-Nonce)</div>
+      <div class="result-value" id="resCombined"></div>
+    </div>
+
+    <div class="result-item">
+      <div class="result-label">3. 該輪抽獎結果 Hash</div>
+      <div class="result-value" id="resDrawHash"></div>
+    </div>
+
+    <div class="result-item">
+      <div class="result-label">4. 擷取前 8 碼 Hex</div>
+      <div class="result-value" id="resHex8"></div>
+    </div>
+
+    <div class="result-item">
+      <div class="result-label">5. 轉換為 10 進位整數</div>
+      <div class="result-value" id="resInt"></div>
+    </div>
+
+    <div class="result-item">
+      <div class="result-label">6. 最終得獎者索引 (整數 取餘數 剩餘總人數)</div>
+      <div class="result-value highlight" id="resIndex"></div>
+      <div style="font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 5px;">
+        * 對應當時陣列中的第幾位 (從 0 開始算)
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 呼叫瀏覽器原生 Web Crypto API 計算 SHA-256
+  async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function verify() {
+    const serverSeed = document.getElementById('serverSeed').value.trim();
+    const targetHash = document.getElementById('targetHash').value.trim();
+    const clientSeed = document.getElementById('clientSeed').value.trim();
+    const nonce = document.getElementById('nonce').value.trim();
+    const totalParticipants = parseInt(document.getElementById('totalParticipants').value.trim(), 10);
+
+    if (!serverSeed || !clientSeed || !nonce || isNaN(totalParticipants)) {
+      alert("請填寫完整驗證參數（Hash為選填）");
+      return;
+    }
+
+    // 1. 驗證主辦方有沒有偷換 Server Seed
+    const computedServerHash = await sha256(serverSeed);
+    document.getElementById('resServerHash').textContent = computedServerHash;
+    
+    const hashMatchMsg = document.getElementById('hashMatchMsg');
+    if (targetHash) {
+      if (computedServerHash === targetHash) {
+        hashMatchMsg.innerHTML = '<span class="match-status status-ok">✓ 與抽獎畫面顯示完全吻合</span>';
+      } else {
+        hashMatchMsg.innerHTML = '<span class="match-status" style="background: rgba(255,80,80,0.2); color: #ff5050; border: 1px solid #ff5050;">✗ 與輸入的 Hash 不符，Seed可能已被竄改</span>';
+      }
+    } else {
+      hashMatchMsg.innerHTML = '';
+    }
+
+    // 2. 組合字串
+    const combinedString = `${serverSeed}-${clientSeed}-${nonce}`;
+    document.getElementById('resCombined').textContent = combinedString;
+
+    // 3. 算出該輪抽獎的 Hash
+    const drawHash = await sha256(combinedString);
+    document.getElementById('resDrawHash').textContent = drawHash;
+
+    // 4. 取前 8 碼 Hex
+    const hex8 = drawHash.substring(0, 8);
+    document.getElementById('resHex8').textContent = hex8;
+
+    // 5. 轉成整數
+    const hashInt = parseInt(hex8, 16);
+    document.getElementById('resInt').textContent = hashInt;
+
+    // 6. 算出中獎 Index
+    const index = hashInt % totalParticipants;
+    document.getElementById('resIndex').textContent = `[ ${hashInt} % ${totalParticipants} ] = ${index}`;
+
+    // 顯示結果區塊
+    document.getElementById('resultBox').style.display = 'block';
+  }
+</script>
+
+</body>
+</html>

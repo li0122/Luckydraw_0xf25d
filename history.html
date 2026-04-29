@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>抽獎歷史 - Lucky Draw</title>
+<style>
+  body{font-family: 'Noto Serif TC', serif;margin:0;background:#070405;color:#f0d070}
+  .wrap{max-width:1100px;margin:24px auto;padding:20px}
+  h1{font-size:28px;margin-bottom:6px}
+  .controls{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+  button{padding:8px 12px;border-radius:6px;border:1px solid rgba(240,208,112,0.12);background:rgba(200,150,12,0.08);color:#f0d070;cursor:pointer}
+  .game{background:rgba(255,255,255,0.03);border:1px solid rgba(200,150,12,0.08);padding:12px;border-radius:8px;margin-bottom:10px}
+  .meta{font-size:12px;color:rgba(200,150,12,0.6);margin-bottom:8px}
+  .winners{display:flex;gap:8px;flex-wrap:wrap}
+  .winner{background:rgba(200,150,12,0.12);padding:6px 10px;border-radius:6px;color:#fff}
+  .empty{color:rgba(200,150,12,0.35)}
+  .status{margin:10px 0 14px;color:rgba(200,150,12,0.7);font-size:13px}
+  pre{white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,0.2);padding:10px;border-radius:6px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>抽獎歷史</h1>
+    <div class="controls">
+      <button id="btnRefresh">重新整理</button>
+      <button id="btnClear">清除歷史</button>
+      <button id="btnExport">匯出 JSON</button>
+      <div style="flex:1"></div>
+      <a href="lucky_draw_system.html" style="color:#f0d070;text-decoration:none">回到抽獎頁面</a>
+    </div>
+    <div class="status" id="status">載入歷史中...</div>
+    <div id="games"></div>
+    <div id="raw" style="margin-top:18px"></div>
+  </div>
+<script>
+function fmtTime(ts){const d=new Date(ts);return d.toLocaleString();}
+function readLocalGames(){
+  try { return JSON.parse(localStorage.getItem('lucky_draw_games')||'[]'); }
+  catch (error) { return []; }
+}
+
+function renderWithGames(games, source){
+  const container=document.getElementById('games');container.innerHTML='';
+  const status=document.getElementById('status');
+  status.textContent=source ? `資料來源：${source}` : '資料來源：本機';
+  if(!games.length){container.innerHTML='<div class="empty">尚無歷史紀錄</div>';document.getElementById('raw').innerHTML='';return}
+  games.forEach((g,i)=>{
+    const el=document.createElement('div');el.className='game';
+    const winners=Array.isArray(g.winners)?g.winners:[];
+    el.innerHTML=`<div class="meta">#${games.length-i} • ${fmtTime(g.timestamp)} • 獎項：${g.prize||'未命名'} • 得獎人數：${winners.length}</div>`;
+    const wdiv=document.createElement('div');wdiv.className='winners';
+    winners.forEach(w=>{const s=document.createElement('div');s.className='winner';s.textContent=w;wdiv.appendChild(s)});
+    el.appendChild(wdiv);
+    const rem=document.createElement('div');rem.className='meta';rem.style.marginTop='8px';rem.textContent='抽後剩餘人數：'+(Array.isArray(g.remaining)?g.remaining.length:0);
+    el.appendChild(rem);
+    container.appendChild(el);
+  });
+  document.getElementById('raw').innerHTML='<h3>Raw JSON</h3><pre>'+JSON.stringify(games,null,2)+'</pre>';
+}
+function render(){
+  const games=readLocalGames();
+  if(games.length){
+    renderWithGames(games,'本機儲存');
+    return;
+  }
+  const status=document.getElementById('status');
+  if(window.opener){
+    status.textContent='本機沒有資料，正在向抽獎頁請求歷史...';
+    window.opener.postMessage({type:'REQUEST_LUCKY_DRAW_HISTORY'}, '*');
+    return;
+  }
+  renderWithGames([], '本機儲存');
+}
+document.getElementById('btnRefresh').onclick=render;
+document.getElementById('btnClear').onclick=()=>{if(!confirm('確定要清除所有抽獎歷史嗎？'))return;localStorage.removeItem('lucky_draw_games');render()};
+document.getElementById('btnExport').onclick=()=>{const data=JSON.stringify(readLocalGames(),null,2);const blob=new Blob([data],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='lucky_draw_history.json';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)};
+window.addEventListener('message', event=>{
+  if(!event.data || event.data.type!=='LUCKY_DRAW_HISTORY_RESPONSE') return;
+  const games=Array.isArray(event.data.games)?event.data.games:[];
+  renderWithGames(games,'抽獎頁同步');
+});
+render();
+</script>
+</body>
+</html>
